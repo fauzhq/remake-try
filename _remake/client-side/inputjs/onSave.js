@@ -22,7 +22,7 @@ export function initSaveFunctions () {
 }
 
 // all saves go through here
-export function callSaveFunction (targetElem) {
+export function callSaveFunction ({targetElem}) {
   let saveEnabled = !targetElem.closest("[no-save]");
   if (!saveEnabled) {
     return;
@@ -68,7 +68,7 @@ export function callSaveFunction (targetElem) {
   // log the data if the debug option is turned on
   if (optionsData.logDataOnSave) {
     let logDataOnSaveString = "";
-    logDataOnSaveString += "[Dev mode] Logging Remake Data on save: ";
+    logDataOnSaveString += "(logDataOnSave) ";
 
     if (isDefaultingToGlobalSave) {
       logDataOnSaveString += "Action: Saved entire page, ";

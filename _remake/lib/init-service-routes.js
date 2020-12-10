@@ -6,7 +6,6 @@ const shell = require('shelljs');
 const path = require('path');
 const fs = require('fs');
 const archiver = require('archiver');
-const isValidDomain = require('is-valid-domain');
 
 // configure multer storage
 const storage = multer.diskStorage({
@@ -99,29 +98,13 @@ const validAppId = (req, res, next) => {
   }
 }
 
-const validDomain = (req, res, next) => {
-  const domain = req.body.domain;
-  if (!domain) {
-    return res.status(400).json({ message: 'Bad request: domain is missing' }).end();
-  }
-  if (!isValidDomain(domain)) {
-    return res.status(400).json({ message: 'Bad request: invalid domain' }).end();
-  }
-  const domainParts = domain.split('.');
-  if (domainParts.length !== 2) {
-    return res.status(400).json({ message: 'Bad request: invalid domain. We don\'t support subdomains' }).end();
-  } else {
-    next();
-  }
-}
-
 export function initServiceRoutes({app}) {
   // signup endpoint
   // validation callbacks: validEmail, validPass
   app.post('/service/signup', validEmail, validPass, (req, res) => {
     const { email, password } = req.body;
     const hashedPassword = bcrypt.hashSync(password, 8); // hash password
-    database.query('INSERT INTO users (email, pwd_hash) VALUES ( ?, ?)',
+    connection.query('INSERT INTO users (email, pwd_hash) VALUES ( ?, ?)',
       [email, hashedPassword],
       (err, results, fields) => {
         if (err) {
@@ -142,7 +125,7 @@ export function initServiceRoutes({app}) {
   // validation callbacks: validEmail, validPass
   app.post('/service/login', validEmail, validPass, (req, res) => {
     const { email, password } = req.body;
-    database.query('SELECT * FROM users WHERE email = ?',
+    connection.query('SELECT * FROM users WHERE email = ?',
       [email],
       (err, results, _) => {
         if (err) {
@@ -174,7 +157,7 @@ export function initServiceRoutes({app}) {
   // user must be authenticated to access it
   app.get('/service/subdomain/check', checkIfAuthenticated, validSubdomain, (req, res) => {
     const { subdomain } = req.query;
-    database.query('SELECT * FROM apps WHERE name = ?',
+    connection.query('SELECT * FROM apps WHERE name = ?',
       [subdomain],
       (err, result, _) => {
         if (err) {
@@ -193,7 +176,7 @@ export function initServiceRoutes({app}) {
   app.post('/service/subdomain/register', checkIfAuthenticated, validSubdomain, (req, res) => {
     const { subdomain } = req.body;
 
-    database.query('SELECT * FROM apps WHERE user_id = ?',
+    connection.query('SELECT * FROM apps WHERE user_id = ?',
       [req.user_id],
       (err, results, fields) => {
         if (err) {
@@ -203,7 +186,7 @@ export function initServiceRoutes({app}) {
           return res.status(403).json({ message: `Reached ${global.config.limits.appPerUser} apps limit.` }).end();
         }
 
-        database.query('INSERT INTO apps (name, user_id, domain) VALUES (?, ?, ?)',
+        connection.query('INSERT INTO apps (name, user_id, domain) VALUES (?, ?, ?)',
           [subdomain, req.user_id, `${subdomain}.remakeapps.com`],
           (err, results, fields) => {
             if (err) {
@@ -224,7 +207,7 @@ export function initServiceRoutes({app}) {
   // user must be authenticated to access it
   app.post('/service/deploy', checkIfAuthenticated, upload.single('deployment'), validSubdomain, (req, res) => {
     const { appName } = req.body;
-    database.query('SELECT * FROM apps WHERE user_id = ? AND name = ?',
+    connection.query('SELECT * FROM apps WHERE user_id = ? AND name = ?',
       [req.user_id, appName],
       (err, result, _) => {
         if (err) {
@@ -257,64 +240,10 @@ export function initServiceRoutes({app}) {
           }
         })
       });
-  });
-
-  // endpoint for linking custom domain to app
-  app.post('/service/domain', checkIfAuthenticated, validSubdomain, validDomain, (req, res) => {
-    const { appName, domain } = req.body;
-
-    database.query('SELECT * FROM apps WHERE name = ? and user_id = ?',
-      [appName, req.user_id],
-      (err, results, fields) => {
-        if (err) {
-          return res.status(500).json(err).end();
-        }
-        if (results.length !== 1) {
-          return res.status(400).json({ message: "No apps found."}).end();
-        }
-
-        const app = results[0];
-        const remakeDirectory = global.config.location.remake;
-        
-        if (fs.existsSync(`${remakeDirectory}/app/${domain}`)) {
-          return res.status(200).end();
-        }
-
-        let commandOutput;
-        commandOutput = shell.ln('-s', `${remakeDirectory}/app/${app.name}`, `${remakeDirectory}/app/${domain}`);
-        if (commandOutput.code !== 0) {
-          return res.status(500).end();
-        }
-
-        const nginxConfigTemplate = fs.readFileSync(`${remakeDirectory}/_remake/templates/nginx-custom-domain.conf`, 'utf8');
-        const nginxConfig = nginxConfigTemplate.replace(/\{DOMAIN\}/g, domain);
-        fs.writeFileSync(`/etc/nginx/sites-available/${domain}`, nginxConfig);
-        commandOutput = shell.ln('-s', `/etc/nginx/sites-available/${domain}`, `/etc/nginx/sites-enabled/${domain}`);
-        if (commandOutput.code !== 0) {
-          return res.status(500).end();
-        }
-
-        commandOutput = shell.exec(`sudo certbot --nginx -d ${domain} -d www.${domain} > /dev/null`, { silent: true });
-        if (commandOutput.code !== 0) {
-          return res.status(500).end();
-        }
-
-        commandOutput = shell.exec(`sudo nginx -t`, { silent: true });
-        if (commandOutput.code !== 0) {
-          return res.status(500).end();
-        }
-
-        commandOutput = shell.exec(`sudo service nginx reload`, { silent: true });
-        if (commandOutput.code !== 0) {
-          return res.status(500).end();
-        }
-
-        return res.status(200).end();
-      });
-  });
+  })
 
   app.get('/service/apps', checkIfAuthenticated, (req, res) => {
-    database.query('SELECT * FROM apps WHERE user_id = ?',
+    connection.query('SELECT * FROM apps WHERE user_id = ?',
       [req.user_id],
       (err, results, fields) => {
         if (err) {
@@ -324,10 +253,10 @@ export function initServiceRoutes({app}) {
       });
   });
 
-  app.get('/service/backup', checkIfAuthenticated, validAppId, validDomain, (req, res) => {
+  app.get('/service/backup', checkIfAuthenticated, validAppId, (req, res) => {
     const { appId } = req.query;
 
-    database.query('SELECT * FROM apps WHERE id = ? and user_id = ?',
+    connection.query('SELECT * FROM apps WHERE id = ? and user_id = ?',
       [appId, req.user_id],
       (err, results, fields) => {
         if (err) {

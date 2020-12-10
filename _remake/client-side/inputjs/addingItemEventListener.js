@@ -28,7 +28,7 @@ function _defaultAddItemCallback ({templateName, listElem, whereToInsert}) {
     listElem.insertAdjacentHTML(whereToInsert, htmlString);
 
     // save needs to be called on the list element, not the item, so it doesn't try to save to a non-existent id
-    callSaveFunction(listElem);
+    callSaveFunction({targetElem: listElem});
     
     let itemElem = whereToInsert === "afterbegin" ? listElem.firstElementChild : listElem.lastElementChild;
     callOnAddItemCallbacks({success: true, listElem, itemElem, templateName, ajaxResponse});
@@ -46,7 +46,7 @@ export default function () {
       let argArray = getAttributeValueAsArray(matchingElement, matchingAttribute);
       let position = argArray.indexOf("top") !== -1 ? "top" : "bottom";
       let whereToInsert = position === "top" ? "afterbegin" : "beforeend";
-      let selector = argArray.find(arg => arg !== "top" && arg !== "bottom") || "[array]";
+      let selector = argArray.find(arg => arg !== "top" || "bottom") || "[array]";
       // find the nearest element matching the selector (searching through ancestors consecutively)
       let listElem = findNearest({elem: matchingElement, selector});
 

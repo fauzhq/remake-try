@@ -60,7 +60,7 @@ function _valueForKeyName ({method, elem, keyName, value = ""}) {
   if (method === "set") {
     let settingTemporaryKey = attrName.startsWith("temporary:");
     if (!settingTemporaryKey) {
-      callSaveFunction(elem);
+      callSaveFunction({targetElem: elem});
     }
 
     // look for any matching `watch:example-key` elements inside the current element 

@@ -18,7 +18,7 @@ export function syncData ({keyNames = [], sourceElement, targetElement, shouldSy
   });
 
   callOnSyncCallbacks({keyNames, sourceElement, targetElement, shouldSyncIntoUpdateElems});
-  callSaveFunction(targetElement);
+  callSaveFunction({targetElem: targetElement});
 }
 
 // used when clicking an element/button that might want to set data ahead of the sync

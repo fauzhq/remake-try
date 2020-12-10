@@ -18,10 +18,6 @@ export function onAddItem (cb) {
   optionsData.onAddItemCallbacks.push(cb);
 }
 
-export function onRemoveItem (cb) {
-  optionsData.onRemoveItemCallbacks.push(cb);
-}
-
 export function onSync (cb) {
   optionsData.onSyncCallbacks.push(cb);
 }
@@ -42,10 +38,6 @@ export function callOnFileUploadProgressCallbacks (...args) {
 
 export function callOnAddItemCallbacks (...args) {
   optionsData.onAddItemCallbacks.forEach(cb => cb(...args));
-}
-
-export function callOnRemoveItemCallbacks (...args) {
-  optionsData.onRemoveItemCallbacks.forEach(cb => cb(...args));
 }
 
 export function callOnSyncCallbacks (...args) {

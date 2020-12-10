@@ -1,11 +1,11 @@
 import routeUtils from "../utils/route-utils";
 
-export function addRemakeAppStatusToPage ({html, data, currentUser, username, itemId, isPreviewing}) {
-  let attributeString = createBodyAttributeString({data, currentUser, username, itemId, isPreviewing});
+export function addRemakeAppStatusToPage ({html, data, currentUser, username, itemId}) {
+  let attributeString = createBodyAttributeString({data, currentUser, username, itemId});
   return html.replace("<body", attributeString);
 }
 
-function createBodyAttributeString ({data, currentUser, username, itemId, isPreviewing}) {
+function createBodyAttributeString ({data, currentUser, username, itemId}) {
   let str = "<body ";
 
   if (currentUser) {
@@ -18,10 +18,6 @@ function createBodyAttributeString ({data, currentUser, username, itemId, isPrev
     str += "data-user-is-page-author ";
   } else {
     str += "data-user-is-not-page-author ";
-  }
-
-  if (isPreviewing) {
-    str += "data-is-previewing ";
   }
 
   if (routeUtils.isBaseRoute({username, itemId})) {

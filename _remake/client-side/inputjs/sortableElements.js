@@ -17,29 +17,18 @@ export default function initSortableElements () {
 
   function makeSortable ({elemToSearch}) {
     let sortableElems = Array.from(elemToSearch.querySelectorAll("[sortable]"));
-
     sortableElems.forEach(sortableListElem => {
-      if (sortableListElem.closest("[disable-events]")) {
-        return;
-      }
-
-      let sortableOptions = {
-        group: sortableListElem.getAttribute("sortable") || getRandomSortableId(),
+      sortablejs.create(sortableListElem, {
+        group: sortableListElem.getAttribute("sortable") || getRandomId(),
         onEnd: function (event) {
-          callSaveFunction(sortableListElem)
+          callSaveFunction({targetElem: sortableListElem})
         }
-      };
-
-      if (sortableListElem.querySelector("[sortable-handle]")) {
-        sortableOptions.handle = "[sortable-handle]";
-      }
-
-      sortablejs.create(sortableListElem, sortableOptions);
+      });
     });
   }
 }
 
 
-function getRandomSortableId () {
+function getRandomId () {
   return "sortable-" + Math.random().toString().substring(2);
 }

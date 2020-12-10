@@ -11,13 +11,11 @@ import {
   readdirAsync, 
   statAsync 
 } from "./async-utils";
-import { forInLoopRegex } from "./common";
 import { getHandlebarsContext } from "./handlebars-context";
 import { processData } from "./process-data";
 import { addRemakeAppStatusToPage } from "./add-remake-app-status";
 import { getPartialsAsInlinePartials } from "./get-partials";
 import { getGlobalData } from "./get-global-data";
-import RemakeStore from "../lib/remake-store";
 
 
 export async function getRootAppsPageHtml () {
@@ -51,22 +49,13 @@ export async function getDataForPage ({req, res, appName, pageAuthor, itemId}) {
   let query = req.query;
   let pathname = parseUrl(req).pathname;
   let currentUser = req.user;
-  let data = (pageAuthor && pageAuthor.appData) || {};
+  let data = pageAuthor && pageAuthor.appData;
   let [globalData] = await capture(getGlobalData({appName}));
   let isPageAuthor = currentUser && pageAuthor && currentUser.details.username === pageAuthor.details.username;
   let flashErrors = req.flash("error");
   let flashSuccesses = req.flash("success");
-
-  let currentItem = {};
-  let parentItem = {};
-  let generateUniqueIdsOption = process.env.GENERATE_UNIQUE_IDS;
-  if (RemakeStore.isMultiTenant() || ["true", true].includes(generateUniqueIdsOption)) {
-    let [itemData, itemDataError] = await capture(processData({res, appName, pageAuthor, data, itemId}));
-    currentItem = itemData.currentItem;
-    parentItem = itemData.parentItem;
-  }
-
-  let isPreviewing = query && query.preview;
+  let [itemData, itemDataError] = await capture(processData({res, appName, pageAuthor, data, itemId}));
+  let {currentItem, parentItem} = itemData;
 
   let allData = {
     ...data,
@@ -81,8 +70,7 @@ export async function getDataForPage ({req, res, appName, pageAuthor, itemId}) {
     flashSuccesses,
     currentUser,
     pageAuthor,
-    isPageAuthor: isPreviewing ? false : isPageAuthor,
-    isPreviewing,
+    isPageAuthor,
     pageHasAppData: !!pageAuthor
   };
 
@@ -90,10 +78,10 @@ export async function getDataForPage ({req, res, appName, pageAuthor, itemId}) {
 
 }
 
-export function getPageHtml ({pageTemplate, data, appName, username, itemId, isPreviewing}) {
+export function getPageHtml ({pageTemplate, data, appName, username, itemId}) {
   let html = pageTemplate(data);
   let currentUser = data.currentUser;
-  let htmlWithAppStatus = addRemakeAppStatusToPage({html, data, currentUser, username, itemId, isPreviewing});
+  let htmlWithAppStatus = addRemakeAppStatusToPage({html, data, currentUser, username, itemId});
   return htmlWithAppStatus;
 }
 
@@ -115,6 +103,7 @@ export async function doesPageExist ({appName, pageName}) {
 
 let layoutNameRegex = /\{\{\s*layout\s+["'](\w+)["']\s*\}\}/;
 let yieldCommandRegex = /\{\{>\s+yield\s+\}\}/;
+let forInLoopRegex = /\{\{#for\s+(\S+)\s+in\s+([^\}\s]+)/g;
 
 async function processTemplateString ({appName, pageTemplateString}) {
   // 1. get the layout name from the template string

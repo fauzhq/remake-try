@@ -26,15 +26,19 @@ export default function () {
         // ["edit", "example-key", "without-remove"]
         // ["edit", "example-key", "textarea", "without-remove"]
         // -> first two items are requireed, the last two are optional
-        let [_, keyName, ...otherOptions] = attributeParts;
+        let [_, keyName, formType, removeOption] = attributeParts;
 
         let validRemoveOptions = ["with-remove", "without-remove", "with-erase"];
-        let validFormTypes = ["text", "textarea"];
+        if (validRemoveOptions.includes(formType)) {
+          removeOption = formType;
+          formType = undefined;
+        } else {
+          removeOption = "with-remove";
+        }
 
-        // if `otherOptions` includes includes a valid remove option, use that. Otherwise, use default value.
-        let removeOption = validRemoveOptions.find(str => otherOptions.includes(str)) || "with-remove";
-        // if `otherOptions` includes includes a valid form type option, use that. Otherwise, use default value.
-        let formType = validFormTypes.find(str => otherOptions.includes(str)) || "text";
+        if (!formType) {
+          formType = "text";
+        }
 
         return {keyName, formType, removeOption, eventType, matchingElement, matchingAttribute, matchingPartialAttributeString};
       });
@@ -59,9 +63,6 @@ export default function () {
       // open popover
       let hasRemove = firstMatchRemoveOption === "with-remove";
       let hasErase = firstMatchRemoveOption === "with-erase";
-      editablePopoverElem.setAttribute(`temporary:key:remake-edit-popover`, "");
-      editablePopoverElem.setAttribute(`temporary:key:remake-edit-option-has-remove`, "");
-      editablePopoverElem.setAttribute(`temporary:key:remake-edit-option-has-erase`, "");
       setValueForKeyName({elem: editablePopoverElem, keyName: "remake-edit-popover", value: "on"});
       setValueForKeyName({elem: editablePopoverElem, keyName: "remake-edit-option-has-remove", value: hasRemove ? "on" : "off"});
       setValueForKeyName({elem: editablePopoverElem, keyName: "remake-edit-option-has-erase", value: hasErase ? "on" : "off"});
@@ -86,7 +87,7 @@ export default function () {
 
       // copy the layout
       copyLayout({
-        sourceElem: firstMatchElem, 
+        sourceElem: firstMatchTargetElem, 
         targetElem: editablePopoverElem, 
         dimensionsName: "width", 
         xOffset: 0, 
@@ -139,11 +140,10 @@ export default function () {
 function removeObjectKeysFromElem ({elem}) {
   let attributesToRemove = [];
   forEachAttr(elem, (attrName, attrValue) => {
-    if (attrName.startsWith("key:") || attrName.startsWith("temporary:key:")) {
+    if (attrName.startsWith("key:")) {
       attributesToRemove.push(attrName);
     }
   });
-  // this is outside the loop because you can't remove items from an array when you're looping through it
   attributesToRemove.forEach(attrName => elem.removeAttribute(attrName));
 }
 

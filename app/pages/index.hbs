@@ -1,8 +1,11 @@
-<h1>Welcome to my app!</h1>
-<ul>
+<div class="front-page">
+  <div class="front-page__preview-container">
+    <img class="front-page__preview" src="/assets/images/kanban-screenshot.png">
+  </div>
+  <h2 class="front-page__heading">Welcome to TaskFellow, <div class="front-page__heading-note">an app implemented with <a href="https://remaketheweb.com/">Remake</a> in 30 minutes</div></h2>
   {{#if currentUser}}
-    <li><a href="/{{currentUser.details.username}}">Go to your dashboard</a></li>
+    <a class="button button--large" href="/{{currentUser.details.username}}">Go to your board</a>
   {{else}}
-    <li><a href="/user/signup">Sign up for an account</a></li>
+    <a class="button button--front-page" href="/user/signup">Instant Sign Up</a>
   {{/if}}
-</ul>
+</div>
